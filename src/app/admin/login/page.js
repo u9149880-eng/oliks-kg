@@ -26,6 +26,13 @@ export default function AdminLogin() {
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        setError("Ошибка конфигурации");
+        setLoading(false);
+        return;
+      }
+      
       const supabase = createClient(supabaseUrl, supabaseAnonKey);
       const passwordHash = await sha256(password);
 
@@ -69,17 +76,27 @@ export default function AdminLogin() {
           </h1>
           <p style={{ color: "#64748b", marginTop: "8px", fontSize: "14px" }}>Вход в панель управления</p>
         </div>
+
         <form onSubmit={handleLogin}>
-          {error && <div style={{ background: "#fee2e2", color: "#dc2626", padding: "12px", borderRadius: "8px", marginBottom: "16px", fontSize: "14px", textAlign: "center" }}>{error}</div>}
+          {error && (
+            <div style={{ background: "#fee2e2", color: "#dc2626", padding: "12px", borderRadius: "8px", marginBottom: "16px", fontSize: "14px", textAlign: "center" }}>
+              {error}
+            </div>
+          )}
+
           <div style={{ marginBottom: "16px" }}>
             <label style={labelStyle}>Email</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@oliks.kg" required style={inputStyle} />
           </div>
+
           <div style={{ marginBottom: "24px" }}>
             <label style={labelStyle}>Пароль</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Введите пароль" required style={inputStyle} />
           </div>
-          <button type="submit" disabled={loading} style={{ ...buttonStyle, opacity: loading ? 0.7 : 1 }}>{loading ? "Вход..." : "Войти"}</button>
+
+          <button type="submit" disabled={loading} style={{ ...buttonStyle, opacity: loading ? 0.7 : 1 }}>
+            {loading ? "Вход..." : "Войти"}
+          </button>
         </form>
       </div>
     </div>
