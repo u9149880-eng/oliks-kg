@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { sha256 } from "js-sha256";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -18,6 +17,13 @@ const countries = [
   "Туркменистан",
   "Другая",
 ];
+
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -101,7 +107,7 @@ export default function Register() {
         return;
       }
 
-      const passwordHash = sha256(password);
+      const passwordHash = await sha256(password);
 
       const { error: dbError } = await supabase.from("users").insert([
         {
@@ -190,7 +196,6 @@ export default function Register() {
             <input type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required placeholder="Повторите пароль" style={inputStyle} />
           </div>
 
-          {/* Только камера */}
           <div style={{ marginBottom: "24px" }}>
             <label style={labelStyle}>Фото паспорта / селфи с паспортом *</label>
             <input

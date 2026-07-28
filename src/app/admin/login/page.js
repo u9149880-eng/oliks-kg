@@ -2,8 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { sha256 } from "js-sha256";
 import { createClient } from "@supabase/supabase-js";
+
+// Встроенная функция SHA-256
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -22,7 +29,7 @@ export default function AdminLogin() {
 
     try {
       const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const passwordHash = sha256(password);
+      const passwordHash = await sha256(password);
 
       const { data, error: dbError } = await supabase
         .from("admins")
@@ -73,45 +80,16 @@ export default function AdminLogin() {
           )}
 
           <div style={{ marginBottom: "16px" }}>
-            <label style={{ display: "block", marginBottom: "6px", color: "#374151", fontWeight: "500", fontSize: "14px" }}>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@oliks.kg"
-              required
-              style={{ width: "100%", padding: "10px 14px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
-            />
+            <label style={labelStyle}>Email</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@oliks.kg" required style={inputStyle} />
           </div>
 
           <div style={{ marginBottom: "24px" }}>
-            <label style={{ display: "block", marginBottom: "6px", color: "#374151", fontWeight: "500", fontSize: "14px" }}>Пароль</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Введите пароль"
-              required
-              style={{ width: "100%", padding: "10px 14px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
-            />
+            <label style={labelStyle}>Пароль</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Введите пароль" required style={inputStyle} />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "12px",
-              background: brandBlue,
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              fontSize: "16px",
-              fontWeight: "600",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.7 : 1,
-            }}
-          >
+          <button type="submit" disabled={loading} style={{ ...buttonStyle, opacity: loading ? 0.7 : 1 }}>
             {loading ? "Вход..." : "Войти"}
           </button>
         </form>
@@ -119,3 +97,7 @@ export default function AdminLogin() {
     </div>
   );
 }
+
+const labelStyle = { display: "block", marginBottom: "6px", color: "#374151", fontWeight: "500", fontSize: "14px" };
+const inputStyle = { width: "100%", padding: "10px 14px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" };
+const buttonStyle = { width: "100%", padding: "12px", background: "#1a56db", color: "white", border: "none", borderRadius: "8px", fontSize: "16px", fontWeight: "600", cursor: "pointer" };
