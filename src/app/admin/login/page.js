@@ -4,16 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
-// Встроенная функция SHA-256
 async function sha256(message) {
   const msgBuffer = new TextEncoder().encode(message);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -28,6 +24,8 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       const supabase = createClient(supabaseUrl, supabaseAnonKey);
       const passwordHash = await sha256(password);
 
@@ -71,27 +69,17 @@ export default function AdminLogin() {
           </h1>
           <p style={{ color: "#64748b", marginTop: "8px", fontSize: "14px" }}>Вход в панель управления</p>
         </div>
-
         <form onSubmit={handleLogin}>
-          {error && (
-            <div style={{ background: "#fee2e2", color: "#dc2626", padding: "12px", borderRadius: "8px", marginBottom: "16px", fontSize: "14px", textAlign: "center" }}>
-              {error}
-            </div>
-          )}
-
+          {error && <div style={{ background: "#fee2e2", color: "#dc2626", padding: "12px", borderRadius: "8px", marginBottom: "16px", fontSize: "14px", textAlign: "center" }}>{error}</div>}
           <div style={{ marginBottom: "16px" }}>
             <label style={labelStyle}>Email</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@oliks.kg" required style={inputStyle} />
           </div>
-
           <div style={{ marginBottom: "24px" }}>
             <label style={labelStyle}>Пароль</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Введите пароль" required style={inputStyle} />
           </div>
-
-          <button type="submit" disabled={loading} style={{ ...buttonStyle, opacity: loading ? 0.7 : 1 }}>
-            {loading ? "Вход..." : "Войти"}
-          </button>
+          <button type="submit" disabled={loading} style={{ ...buttonStyle, opacity: loading ? 0.7 : 1 }}>{loading ? "Вход..." : "Войти"}</button>
         </form>
       </div>
     </div>

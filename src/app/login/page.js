@@ -11,9 +11,6 @@ async function sha256(message) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
 export default function Login() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -33,6 +30,8 @@ export default function Login() {
     setLoading(true);
 
     try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       const supabase = createClient(supabaseUrl, supabaseAnonKey);
       const passwordHash = await sha256(password);
 
@@ -78,25 +77,18 @@ export default function Login() {
           </h1>
           <p style={{ color: "#64748b", marginTop: "8px", fontSize: "14px" }}>Вход по номеру телефона</p>
         </div>
-
         <form onSubmit={handleLogin}>
           {error && <div style={{ background: "#fee2e2", color: "#dc2626", padding: "12px", borderRadius: "8px", marginBottom: "16px", fontSize: "14px", textAlign: "center" }}>{error}</div>}
-
           <div style={{ marginBottom: "16px" }}>
             <label style={labelStyle}>Номер телефона</label>
             <input type="tel" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} required placeholder="+996 555 123456" style={inputStyle} />
           </div>
-
           <div style={{ marginBottom: "24px" }}>
             <label style={labelStyle}>Пароль</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Введите пароль" style={inputStyle} />
           </div>
-
-          <button type="submit" disabled={loading} style={{ ...buttonStyle, opacity: loading ? 0.7 : 1 }}>
-            {loading ? "Вход..." : "Войти"}
-          </button>
+          <button type="submit" disabled={loading} style={{ ...buttonStyle, opacity: loading ? 0.7 : 1 }}>{loading ? "Вход..." : "Войти"}</button>
         </form>
-
         <p style={{ textAlign: "center", color: "#94a3b8", fontSize: "13px", marginTop: "20px" }}>
           Нет аккаунта? <a href="/register" style={{ color: brandBlue, fontWeight: "600" }}>Зарегистрироваться</a>
         </p>

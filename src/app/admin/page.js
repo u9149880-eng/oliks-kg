@@ -4,12 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 export default function AdminDashboard() {
-  const [tab, setTab] = useState("listings"); // "listings" или "users"
+  const [tab, setTab] = useState("listings");
   const [listings, setListings] = useState([]);
   const [users, setUsers] = useState([]);
   const [loadingListings, setLoadingListings] = useState(true);
@@ -18,7 +14,19 @@ export default function AdminDashboard() {
   const [refresh, setRefresh] = useState(false);
   const router = useRouter();
 
-  // Проверка авторизации админа
+  // Клиент будет создан один раз при монтировании
+  const [supabase, setSupabase] = useState(null);
+
+  useEffect(() => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (supabaseUrl && supabaseAnonKey) {
+      setSupabase(createClient(supabaseUrl, supabaseAnonKey));
+    } else {
+      console.error("Supabase keys not found");
+    }
+  }, []);
+
   useEffect(() => {
     const loggedIn = localStorage.getItem("admin_logged_in");
     if (loggedIn !== "true") {
@@ -28,9 +36,8 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  // Загрузка объявлений
   useEffect(() => {
-    if (!isAuth) return;
+    if (!isAuth || !supabase) return;
     async function fetchListings() {
       setLoadingListings(true);
       const { data, error } = await supabase
@@ -41,11 +48,10 @@ export default function AdminDashboard() {
       setLoadingListings(false);
     }
     fetchListings();
-  }, [isAuth, refresh]);
+  }, [isAuth, supabase, refresh]);
 
-  // Загрузка пользователей
   useEffect(() => {
-    if (!isAuth) return;
+    if (!isAuth || !supabase) return;
     async function fetchUsers() {
       setLoadingUsers(true);
       const { data, error } = await supabase
@@ -56,28 +62,30 @@ export default function AdminDashboard() {
       setLoadingUsers(false);
     }
     fetchUsers();
-  }, [isAuth, refresh]);
+  }, [isAuth, supabase, refresh]);
 
-  // Операции с объявлениями
   const approveListing = async (id) => {
+    if (!supabase) return;
     await supabase.from("listings").update({ approved: true }).eq("id", id);
     setRefresh(!refresh);
   };
 
   const rejectListing = async (id) => {
+    if (!supabase) return;
     if (confirm("Удалить объявление навсегда?")) {
       await supabase.from("listings").delete().eq("id", id);
       setRefresh(!refresh);
     }
   };
 
-  // Верификация пользователя
   const verifyUser = async (id) => {
+    if (!supabase) return;
     await supabase.from("users").update({ verified: true }).eq("id", id);
     setRefresh(!refresh);
   };
 
   const unverifyOrDeleteUser = async (id) => {
+    if (!supabase) return;
     if (confirm("Отклонить верификацию и удалить пользователя?")) {
       await supabase.from("users").delete().eq("id", id);
       setRefresh(!refresh);
@@ -96,7 +104,6 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f0f4f8" }}>
-      {/* Шапка */}
       <header style={{ background: "white", padding: "16px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", borderBottom: `3px solid ${brandBlue}` }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h1 style={{ fontSize: "20px", fontWeight: "800", color: brandBlue, margin: 0 }}>
@@ -115,7 +122,6 @@ export default function AdminDashboard() {
       </header>
 
       <div style={{ maxWidth: "1200px", margin: "24px auto", padding: "0 24px" }}>
-        {/* Вкладки */}
         <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
           <button onClick={() => setTab("listings")} style={tabStyle(tab === "listings", brandBlue)}>
             📋 Объявления ({listings.length})
@@ -125,7 +131,6 @@ export default function AdminDashboard() {
           </button>
         </div>
 
-        {/* Вкладка "Объявления" */}
         {tab === "listings" && (
           <div>
             {loadingListings ? (
@@ -162,7 +167,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Вкладка "Пользователи" */}
         {tab === "users" && (
           <div>
             {loadingUsers ? (
@@ -179,11 +183,16 @@ export default function AdminDashboard() {
                     <div style={{ fontSize: "13px", color: "#64748b" }}>
                       📞 {user.phone} | 🌍 {user.country || "Не указана"}
                     </div>
-                    <div style={{ marginTop: "6px" }}>
-                      <a href={user.passport_photo} target="_blank" style={{ fontSize: "13px", color: brandBlue, textDecoration: "underline" }}>
-                        📎 Фото паспорта
-                      </a>
-                    </div>
+                    {user.passport_photo ? (
+                      <div style={{ marginTop: "6px" }}>
+                        <a href={user.passport_photo} target="_blank" style={{ fontSize: "13px", color: brandBlue, textDecoration: "underline" }}>
+                          📎 Открыть фото
+                        </a>
+                        <img src={user.passport_photo} alt="Паспорт" style={{ display: "block", marginTop: "6px", maxWidth: "150px", maxHeight: "100px", borderRadius: "6px", border: "1px solid #e5e7eb" }} />
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: "13px", color: "#94a3b8" }}>Нет фото</span>
+                    )}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <span style={statusBadge(user.verified)}>
@@ -208,7 +217,6 @@ export default function AdminDashboard() {
   );
 }
 
-// Стили
 const tabStyle = (active, color) => ({
   padding: "8px 16px",
   borderRadius: "8px",
