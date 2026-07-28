@@ -4,10 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 export default function AddListing() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -43,6 +39,16 @@ export default function AddListing() {
     setLoading(true);
 
     try {
+      // Создаём клиент ТОЛЬКО здесь, на клиенте
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseAnonKey) {
+        setError("Ошибка конфигурации: ключи Supabase не найдены");
+        setLoading(false);
+        return;
+      }
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
       const { error: dbError } = await supabase.from("listings").insert([
         {
           title: form.title,
