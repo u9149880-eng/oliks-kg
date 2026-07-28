@@ -4,10 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 const countries = [
   "Кыргызстан",
   "Россия",
@@ -52,29 +48,6 @@ export default function Register() {
     setPassportPreview(URL.createObjectURL(file));
   };
 
-  const uploadPassport = async () => {
-    if (!passportFile) return null;
-    setUploading(true);
-    const fileName = `${Date.now()}_${passportFile.name}`;
-    const { data, error } = await supabase.storage
-      .from("passports")
-      .upload(fileName, passportFile, {
-        cacheControl: "3600",
-        upsert: false,
-      });
-
-    setUploading(false);
-    if (error) {
-      throw new Error("Ошибка загрузки фото: " + error.message);
-    }
-
-    const { data: publicUrlData } = supabase.storage
-      .from("passports")
-      .getPublicUrl(fileName);
-
-    return publicUrlData?.publicUrl || null;
-  };
-
   const handleRegister = async (e) => {
     e.preventDefault();
     setError("");
@@ -100,9 +73,38 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const photoUrl = await uploadPassport();
+      // Создаём клиент здесь, внутри обработчика
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseAnonKey) {
+        setError("Ошибка конфигурации");
+        setLoading(false);
+        return;
+      }
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+      // Загрузка фото
+      const fileName = `${Date.now()}_${passportFile.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("passports")
+        .upload(fileName, passportFile, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        setError("Ошибка загрузки фото: " + uploadError.message);
+        setLoading(false);
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("passports")
+        .getPublicUrl(fileName);
+
+      const photoUrl = publicUrlData?.publicUrl;
       if (!photoUrl) {
-        setError("Не удалось загрузить фото");
+        setError("Не удалось получить ссылку на фото");
         setLoading(false);
         return;
       }
@@ -176,14 +178,7 @@ export default function Register() {
 
           <div style={{ marginBottom: "14px" }}>
             <label style={labelStyle}>Номер телефона *</label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(formatPhone(e.target.value))}
-              required
-              placeholder="+996 555 123456"
-              style={inputStyle}
-            />
+            <input type="tel" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} required placeholder="+996 555 123456" style={inputStyle} />
           </div>
 
           <div style={{ marginBottom: "14px" }}>
@@ -198,40 +193,11 @@ export default function Register() {
 
           <div style={{ marginBottom: "24px" }}>
             <label style={labelStyle}>Фото паспорта / селфи с паспортом *</label>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFileChange}
-              id="cameraInput"
-              style={{ display: "none" }}
-            />
-            <button
-              type="button"
-              onClick={() => document.getElementById("cameraInput").click()}
-              style={{
-                width: "100%",
-                padding: "12px",
-                background: brandBlue,
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontWeight: "600",
-                fontSize: "14px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-              }}
-            >
+            <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} id="cameraInput" style={{ display: "none" }} />
+            <button type="button" onClick={() => document.getElementById("cameraInput").click()} style={{ width: "100%", padding: "12px", background: brandBlue, color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "600", fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
               📸 Сделать фото паспорта
             </button>
-            {passportFile && (
-              <p style={{ fontSize: "12px", color: "#16a34a", margin: "4px 0", textAlign: "center" }}>
-                ✅ Файл выбран: {passportFile.name}
-              </p>
-            )}
+            {passportFile && <p style={{ fontSize: "12px", color: "#16a34a", margin: "4px 0", textAlign: "center" }}>✅ Файл выбран: {passportFile.name}</p>}
             {passportPreview && (
               <div style={{ marginTop: "8px" }}>
                 <img src={passportPreview} alt="Превью паспорта" style={{ width: "100%", maxHeight: "200px", objectFit: "contain", borderRadius: "8px", border: "1px solid #e5e7eb" }} />
